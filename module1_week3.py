@@ -8,7 +8,6 @@ Original file is located at
 
 #Exercise 1
 """
-
 import torch
 import torch.nn as nn
 
@@ -32,8 +31,6 @@ class MySoftmax(nn.Module):
 data = torch.Tensor([1, 2, 3])
 my_softmax = MySoftmax()
 output = my_softmax(data)
-
-
 
 class SoftmaxStable(nn.Module):
     def __init__(self):
