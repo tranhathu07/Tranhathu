@@ -22,7 +22,6 @@ data.info()
 data.describe()
 
 genre = data['Genre']
-genre
 
 data[['Genre']]
 
@@ -105,12 +104,10 @@ pd.date_range('1998-03-10', '1998-03-15', freq='D')
 
 times_sample = pd.to_datetime(['2013-02-03', '2013-02-06', '2013-02-08'])
 consum_sample = opsd_daily.loc[times_sample, ['Consumption']].copy()
-consum_sample
 
 consum_freq = consum_sample.asfreq('D')
 consum_freq['Consumption - Foward Fill'] = consum_sample.asfreq('D', method='ffill')
-consum_freq
-#
+
 
 data_columns = ['Consumption', 'Wind', 'Solar', 'Wind+Solar']
 opsd_weekly_mean = opsd_daily[ data_columns ].resample('W').mean ()
