@@ -124,55 +124,97 @@ df = pd.read_csv('BTC-Daily.csv')
 df = df.drop_duplicates()
 
 df['date'] = pd.to_datetime(df['date'])
-# date_range = str(df['date'].dt.date.min()) + ' to ' + str(df['date'].dt.date.max())
-# print(date_range)
-# unique_years = df['date'].dt.year.unique()
+date_range = str(df['date'].dt.date.min()) + ' to ' + str(df['date'].dt.date.max())
+print(date_range)
+df['year'] = df['date'].dt.year
+df['month'] = df['date'].dt.month
+df['day'] = df['date'].dt.day
 
-# year_month_day = df['date'].dt.to_period('D').astype(str).str.split('-', expand=True)
-# year_month_day.columns = ['year', 'month', 'day']
-# year_month_day['year'] = year_month_day['year'].astype(int)
-# year_month_day['month'] = year_month_day['month'].astype(int)
-# year_month_day['day'] = year_month_day['day'].astype(int)
+unique_years = df['year'].unique()
+for year in unique_years:
 
-# for year in unique_years:
-    
-#     # Lọc dữ liệu cho năm hiện tại
-#     yearly_data = df[df['date'].dt.year == year]
-#     yearly_data['year'] = yearly_data['date'].dt.year
-#     yearly_data['month'] = yearly_data['date'].dt.month
-#     yearly_data['day'] = yearly_data['date'].dt.day  
+    dates = pd.date_range(start=f'{year}-01-01', end=f'{year}-12-31', freq='D')
+    year_month_day = pd.DataFrame({'date': dates})
+    year_month_day['year'] = year_month_day['date'].dt.year
+    year_month_day['month'] = year_month_day['date'].dt.month
+    year_month_day['day'] = year_month_day['date'].dt.day
 
-#     # Gộp dữ liệu
-#     merged_data = pd.merge(year_month_day, yearly_data, on=['year', 'month', 'day'], how='left')
-    
-#     # Vẽ biểu đồ
-#     plt.figure(figsize=(10, 6))
-#     plt.plot(merged_data['date'], merged_data['close'], label='Closing Price')
-#     plt.title(f'Bitcoin Closing Prices - {year}')
-#     plt.xlabel('Date')
-#     plt.ylabel('Closing Price (USD)')
-#     plt.xticks(rotation=45)
-#     plt.tight_layout()
-#     plt.legend()
-#     plt.show()
+
+    merged_data = pd.merge(year_month_day, df, on=['year', 'month', 'day'], how='left')
+
+    # Plot
+    plt.figure(figsize=(10, 6))
+    plt.plot(merged_data['date_x'], merged_data['close'])
+    plt.title(f'Bitcoin Closing Prices - {year}')
+    plt.xlabel('Date')
+    plt.ylabel('Closing Price (USD)')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
 
 
 #!pip install mplfinance
+
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from mplfinance.original_flavor import candlestick_ohlc
 import datetime
 
-df_filtered  =df[(df['date'] >= '2019-01-01') & (df['date'] <= '2022-12-31')].copy()
+# Filter data for 2019-2022
+df_filtered = df[(df['date'] >= '2019-01-01') & (df['date'] <= '2022-12-31')]
 
+# Convert date to matplotlib format
 df_filtered['date'] = df_filtered['date'].map(mdates.date2num)
 
-fig,ax = plt.subplots(figsize = (20,6))
+# Create the candlestick chart
+fig, ax = plt.subplots(figsize=(20, 6))
 
-candlestick_ohlc(ax,df_filtered[['date','open','high','low','close']].values,width = 0.6,colorup = 'g',colordown = 'r')
+candlestick_ohlc(ax, df_filtered[['date', 'open', 'high', 'low', 'close']].values, width=0.6, colorup='g', colordown='r')
 
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
 fig.autofmt_xdate()
+
+plt.title('Bitcoin Candlestick Chart (2019-2022)')
+plt.xlabel('Date')
+plt.ylabel('Price (USD)')
+plt.grid(True)
+
+# Save the plot as a PDF
+plt.savefig('bitcoin_candlestick_2019_2022.pdf')
+
+plt.show()
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score
+from sklearn.metrics import mean_absolute_error as mae
+scalar = StandardScaler()
+
+df["Standardized_Close_Prices"] = scalar.fit_transform(df["close"].values.reshape(-1,1))
+df["Standardized_Open_Prices"] = scalar.fit_transform(df["open"].values.reshape(-1,1))
+df["Standardized_High_Prices"] = scalar.fit_transform(df["high"].values.reshape(-1,1))
+df["Standardized_Low_Prices"] = scalar.fit_transform(df["low"].values.reshape(-1,1))
+
+#Converting Date to numerical form
+
+df['date_str'] = df['date'].dt.strftime('%Y%m%d%H%M%S')
+
+# Convert the string date to a numerical value
+df['NumericalDate'] = pd.to_numeric(df['date_str'])
+
+# Drop the intermediate 'date_str' column if not needed
+df.drop(columns=['date_str'], inplace=True)
+
+
+X = df[["Standardized_Open_Prices", "Standardized_High_Prices", "Standardized_Low_Prices"]]
+y = df["Standardized_Close_Prices"]
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, shuffle=True)
+
+b = 0
+w = np.zeros(X_train.shape[1])
+lr = 0.01
+epochs = 200
 
 def predict(X,w,b):
     return X.dot(w) + b
@@ -180,41 +222,105 @@ def gradient(y_hat,y,x):
     loss = y_hat - y
     dw = x.T.dot(loss)/len(y)
     db = np.sum(loss)/len(y)
-    cost = np.sum(loss*2)/(2*len(y))
-    return dw,db,cost
+    cost = np.sum(loss**2)/(2*len(y))
+    return (dw,db,cost)
 def update_weight(w,b,dw,db,lr):
     w_new = w - lr*dw
     b_new = b - lr*db
-    return w_new,b_new
+    return (w_new,b_new)
 
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
-scaler = StandardScaler()
-X_train,X_test,y_train,y_test = train_test_split(X,y,test_size = 0.3,random_state = 42,shuffle = True)
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
-
-def linear_regression_vectorized(X_train,y_train,lr = 0.01,num_iteration =200):
+def linear_regression_vectorized(X,y,lr = 0.01,num_iteration =200):
     n_samples,n_feature = X.shape
     w = np.zeros(n_feature)
     b = 0
     losses= []
-    for i in range ( n_samples) :
-        # get a sample
-        x = X_train [ i ]
-        y = y_train [ i ]
-        # predict y_hat
-        y_hat = predict (x , w , b )
-        # compute loss
-        loss = ( y_hat - y ) *( y_hat - y ) / 2.0
-        # compute gradient
-        ( dw , db ) = gradient ( y_hat , y , x )
-        # update weights
-        (w , b ) = update_weight (w , b , lr , dw , db )
+    for _ in range(num_iteration):
+        y_hat = predict(X,w,b)
+        dw,db,cost = gradient(y_hat,y,X)
+        w,b = update_weight(w,b,dw,db,lr)
+        losses.append(cost)
     return w,b,losses
-w,b,losses = linear_regression_vectorized(X_train,y_train,lr = 0.01,num_iteration=200)
+w, b, losses = linear_regression_vectorized(X_train.values, y_train.values, lr=0.01, num_iteration=200)
 plt.plot(losses)
 plt.xlabel('Iteration')
 plt.ylabel('Loss')
 plt.title('Loss')
 plt.show()
+
+from sklearn.metrics import r2_score
+
+# Make predictions on the test set
+y_pred = predict(X_test, w, b)
+
+# Calculate RMSE
+rmse = np.sqrt(np.mean((y_pred - y_test) ** 2))
+
+# Calculate MAE
+mae = np.mean(np.abs(y_pred - y_test))
+
+# Calculate MAPE
+mape = np.mean(np.abs((y_test - y_pred) / y_test)) * 100
+
+
+# Calculate R-squared on training data
+y_train_pred = predict(X_train, w, b)
+train_accuracy = r2_score(y_train, y_train_pred)
+
+# Calculate R-squared on testing data
+test_accuracy = r2_score(y_test, y_pred)
+
+print("Root Mean Square Error (RMSE):", round(rmse, 4))
+print("Mean Absolute Error (MAE):", round(mae, 4))
+print("Training Accuracy (R-squared):", round(train_accuracy, 4))
+print("Testing Accuracy (R-squared):", round(test_accuracy, 4))
+
+# Filter data for 2019-01-01 to 2019-04-01
+df_2019_Q1 = df[(df['date'] >= '2019-01-01') & (df['date'] <= '2019-04-01')]
+
+# Prepare X and y for prediction
+X_2019_Q1 = df_2019_Q1[["open", "high", "low"]]
+y_2019_Q1_actual = df_2019_Q1["close"]
+
+# Predict using the trained model
+y_2019_Q1_pred = predict(X_2019_Q1, w, b)
+
+# Create the plot
+plt.figure(figsize=(12, 6))
+plt.plot(df_2019_Q1['date'], y_2019_Q1_actual, label='Actual Close Price', marker='o')
+plt.plot(df_2019_Q1['date'], y_2019_Q1_pred, label='Predicted Close Price', marker='x')
+plt.title('Actual vs. Predicted Bitcoin Close Price (01/01/2019 - 04/01/2019)')
+plt.xlabel('Date')
+plt.ylabel('Close Price (USD)')
+plt.legend()
+plt.grid(True)
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+# Filter data for 2020
+df_2020 = df[(df['date'] >= '2020-01-01') & (df['date'] <= '2020-12-31')]
+
+# Create a new column for quarter
+df_2020['quarter'] = df_2020['date'].dt.quarter
+
+# Prepare X and y for prediction
+X_2020 = df_2020[["open", "high", "low"]]
+y_2020 = df_2020["close"]
+
+# Make predictions for 2020
+y_pred_2020 = predict(X_2020, w, b)
+
+
+# Plot actual vs. predicted close prices for each quarter
+for quarter in df_2020['quarter'].unique():
+  df_quarter = df_2020[df_2020['quarter'] == quarter]
+  plt.figure(figsize=(10, 6))
+  plt.plot(df_quarter['date'], df_quarter['close'], label='Actual')
+  plt.plot(df_quarter['date'], y_pred_2020[df_2020['quarter'] == quarter], label='Predicted')
+  plt.title(f'Actual vs. Predicted Bitcoin Close Price (2020) - Quarter {quarter}')
+  plt.xlabel('Date')
+  plt.ylabel('Close Price (USD)')
+  plt.legend()
+  plt.grid(True)
+  plt.show()
+
