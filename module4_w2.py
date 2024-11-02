@@ -1,0 +1,220 @@
+import numpy as np
+import matplotlib.pyplot as plt
+data = np.genfromtxt('advertising1.csv',delimiter = ',', skip_header = 1)
+
+N= data.shape[0]
+X = data[:,:3]
+y = data[:,3:]
+
+def normalization(x):
+    N = len(x)
+    maxi = np.max(x)
+    mini = np.min(x)
+    aver = np.mean(x)
+    x = (x-aver)/(maxi - mini)
+    x_b = np.c_[np.ones((N,1)),x]
+    return x_b,maxi,mini,aver
+
+def stochastic_gradient_descent(x_b,y,n_epochs=50,learning_rate=0.00001):
+    # thetas = np.random.randn(4,1)
+    thetas = np.array([[1.16270837] , [ -0.81960489] , [1.39501033] ,[0.29763545]])
+    thetas_path = [thetas]
+    losses = []
+    for epoch in range(n_epochs):
+        for i in range(N):
+            #random_index = np.random.randint(N)
+            random_index = i
+
+            xi = x_b[random_index:random_index +1]
+            yi = y[random_index:random_index+1]
+
+        #Compute output
+            y_hat = xi.dot(thetas)
+
+            #Comput loss
+            loss = ((yi - y_hat)**2)/2
+
+            #Compute gradient:
+            gradient = xi.T.dot(y_hat -yi)
+
+            #Compute theta:
+            thetas = thetas - learning_rate*gradient
+            thetas_path.append(thetas.copy())
+            losses.append(loss.item())
+
+    return thetas_path,losses
+  
+x_b,maxi,mini,aver = normalization(X)
+sgd_theta, losses = stochastic_gradient_descent(x_b,y,n_epochs = 1, learning_rate = 0.01)
+
+def mini_batch_gradient_descent(x_b,y,n_epochs = 50,minibatch_size = 20,learning_rate = 0.01):
+    N = x_b.shape[0]
+    thetas = np.asarray ([[1.16270837] , [-0.81960489] , [1.39501033] ,[0.29763545]])
+    thetas_path= [thetas]
+    losses = []
+    for epoch in range(n_epochs):
+        #shuffle_indices = np.random.permutation(N)
+        shuffled_indices = np.asarray ([21 , 144 , 17 , 107 , 37 , 115 , 167 , 31 , 3 ,
+132 , 179 , 155 , 36 , 191 , 182 , 170 , 27 , 35 , 162 , 25 , 28 , 73 , 172 , 152 , 102 , 16 ,
+185 , 11 , 1 , 34 , 177 , 29 , 96 , 22 , 76 , 196 , 6 , 128 , 114 , 117 , 111 , 43 , 57 , 126 ,
+165 , 78 , 151 , 104 , 110 , 53 , 181 , 113 , 173 , 75 , 23 , 161 , 85 , 94 , 18 , 148 , 190 ,
+169 , 149 , 79 , 138 , 20 , 108 , 137 , 93 , 192 , 198 , 153 , 4 , 45 , 164 , 26 , 8 , 131 ,
+77 , 80 , 130 , 127 , 125 , 61 , 10 , 175 , 143 , 87 , 33 , 50 , 54 , 97 , 9 , 84 , 188 , 139 ,
+195 , 72 , 64 , 194 , 44 , 109 , 112 , 60 , 86 , 90 , 140 , 171 , 59 , 199 , 105 , 41 , 147 ,
+92 , 52 , 124 , 71 , 197 , 163 , 98 , 189 , 103 , 51 , 39 , 180 , 74 , 145 , 118 , 38 , 47 ,
+174 , 100 , 184 , 183 , 160 , 69 , 91 , 82 , 42 , 89 , 81 , 186 , 136 , 63 , 157 , 46 , 67 ,
+129 , 120 , 116 , 32 , 19 , 187 , 70 , 141 , 146 , 15 , 58 , 119 , 12 , 95 , 0 , 40 , 83 , 24 ,
+168 , 150 , 178 , 49 , 159 , 7 , 193 , 48 , 30 , 14 , 121 , 5 , 142 , 65 , 176 , 101 , 55 ,
+133 , 13 , 106 , 66 , 99 , 68 , 135 , 158 , 88 , 62 , 166 , 156 , 2 , 134 , 56 , 123 , 122 ,
+154])
+        x_b_shuffled = x_b[shuffled_indices]
+        y_shuffled = y[shuffled_indices]
+        for i in range(0,N,minibatch_size):
+            xi = x_b_shuffled[i:i+minibatch_size]
+            yi = y_shuffled[i:i+minibatch_size]
+
+            #Compute output
+            y_hat = xi.dot(thetas)
+
+            #compute loss
+            loss_mean = (1/2)*np.mean((yi-y_hat)**2)
+
+            #Compute gradient
+            gradient = xi.T.dot(y_hat - yi) / minibatch_size
+
+            #Compute thetas
+            thetas = thetas - learning_rate*gradient
+            thetas_path.append(thetas)
+            losses.append(loss_mean)
+    return thetas_path,losses
+
+# sgd_thetas,losses = mini_batch_gradient_descent(x_b,y,n_epochs = 50,minibatch_size = 20,learning_rate = 0.01)
+
+# x_axis = list(range(200))
+# plt.plot(x_axis,losses[:200],color = 'r')
+# plt.show()
+
+# mbgd_thetas,losses = mini_batch_gradient_descent(x_b,y,n_epochs = 50,minibatch_size = 20,learning_rate = 0.01)
+# print(round(sum(losses)),2)
+
+def batch_gradient_descent(x_b,y,n_epochs = 100,learning_rate = 0.01 ):
+    # thetas = np. random . randn (4 , 1) # uncomment this line for real application
+    thetas = np.asarray ([[1.16270837] , [ -0.81960489] , [1.39501033] ,
+[0.29763545]])
+    thetas_path = [thetas]
+    losses = []
+    N = x_b.shape[0]
+    for i in range(n_epochs):
+        #Compute_output
+        y_hat = x_b.dot(thetas)
+        loss = (1/2) *(np.mean((y-y_hat)**2))
+        gradient = (1/N) *(x_b.T.dot(y_hat-y))
+        thetas = thetas - gradient*learning_rate
+        thetas_path.append(thetas)
+        mean_loss = (np.sum(loss))/N
+        losses.append(mean_loss)
+    return thetas_path,losses
+
+bgd_thetas,losses = batch_gradient_descent(x_b,y,n_epochs = 100,learning_rate = 0.01)
+# print(round(sum(losses),2))
+
+######## Bài 2 #######
+import pandas as pd
+df = pd.read_csv('BTC-Daily.csv')
+df = df.drop_duplicates()
+
+df['date'] = pd.to_datetime(df['date'])
+# date_range = str(df['date'].dt.date.min()) + ' to ' + str(df['date'].dt.date.max())
+# print(date_range)
+# unique_years = df['date'].dt.year.unique()
+
+# year_month_day = df['date'].dt.to_period('D').astype(str).str.split('-', expand=True)
+# year_month_day.columns = ['year', 'month', 'day']
+# year_month_day['year'] = year_month_day['year'].astype(int)
+# year_month_day['month'] = year_month_day['month'].astype(int)
+# year_month_day['day'] = year_month_day['day'].astype(int)
+
+# for year in unique_years:
+    
+#     # Lọc dữ liệu cho năm hiện tại
+#     yearly_data = df[df['date'].dt.year == year]
+#     yearly_data['year'] = yearly_data['date'].dt.year
+#     yearly_data['month'] = yearly_data['date'].dt.month
+#     yearly_data['day'] = yearly_data['date'].dt.day  
+
+#     # Gộp dữ liệu
+#     merged_data = pd.merge(year_month_day, yearly_data, on=['year', 'month', 'day'], how='left')
+    
+#     # Vẽ biểu đồ
+#     plt.figure(figsize=(10, 6))
+#     plt.plot(merged_data['date'], merged_data['close'], label='Closing Price')
+#     plt.title(f'Bitcoin Closing Prices - {year}')
+#     plt.xlabel('Date')
+#     plt.ylabel('Closing Price (USD)')
+#     plt.xticks(rotation=45)
+#     plt.tight_layout()
+#     plt.legend()
+#     plt.show()
+
+
+#!pip install mplfinance
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from mplfinance.original_flavor import candlestick_ohlc
+import datetime
+
+df_filtered  =df[(df['date'] >= '2019-01-01') & (df['date'] <= '2022-12-31')].copy()
+
+df_filtered['date'] = df_filtered['date'].map(mdates.date2num)
+
+fig,ax = plt.subplots(figsize = (20,6))
+
+candlestick_ohlc(ax,df_filtered[['date','open','high','low','close']].values,width = 0.6,colorup = 'g',colordown = 'r')
+
+ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+fig.autofmt_xdate()
+
+def predict(X,w,b):
+    return X.dot(w) + b
+def gradient(y_hat,y,x):
+    loss = y_hat - y
+    dw = x.T.dot(loss)/len(y)
+    db = np.sum(loss)/len(y)
+    cost = np.sum(loss*2)/(2*len(y))
+    return dw,db,cost
+def update_weight(w,b,dw,db,lr):
+    w_new = w - lr*dw
+    b_new = b - lr*db
+    return w_new,b_new
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+scaler = StandardScaler()
+X_train,X_test,y_train,y_test = train_test_split(X,y,test_size = 0.3,random_state = 42,shuffle = True)
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+def linear_regression_vectorized(X_train,y_train,lr = 0.01,num_iteration =200):
+    n_samples,n_feature = X.shape
+    w = np.zeros(n_feature)
+    b = 0
+    losses= []
+    for i in range ( n_samples) :
+        # get a sample
+        x = X_train [ i ]
+        y = y_train [ i ]
+        # predict y_hat
+        y_hat = predict (x , w , b )
+        # compute loss
+        loss = ( y_hat - y ) *( y_hat - y ) / 2.0
+        # compute gradient
+        ( dw , db ) = gradient ( y_hat , y , x )
+        # update weights
+        (w , b ) = update_weight (w , b , lr , dw , db )
+    return w,b,losses
+w,b,losses = linear_regression_vectorized(X_train,y_train,lr = 0.01,num_iteration=200)
+plt.plot(losses)
+plt.xlabel('Iteration')
+plt.ylabel('Loss')
+plt.title('Loss')
+plt.show()
